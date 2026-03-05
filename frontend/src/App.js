@@ -2,6 +2,9 @@
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
 import NowPlaying from './components/NowPlaying';
+import PlaylistModal from './components/PlaylistModal';
+import ArtistModal from './components/ArtistModal';
+import AddToPlaylistModal from './components/AddToPlaylistModal';
 import { addTrackToPlaylist, fetchPlaylistDetails } from './api/client';
 import { useAuth } from './hooks/useAuth';
 import { useDashboardData } from './hooks/useDashboardData';
@@ -9,20 +12,21 @@ import './App.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
 
-const fallbackRecommended = [
-  { id: 101, title: 'Fresh Radar', tracks_count: 32 },
-  { id: 102, title: 'Bassline Heat', tracks_count: 24 },
-  { id: 103, title: 'Cloud Rap Picks', tracks_count: 18 },
-  { id: 104, title: 'Late Night Mix', tracks_count: 28 },
-];
-
 function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentTrackId, setCurrentTrackId] = useState(null);
   const [activeView, setActiveView] = useState('home');
-  const [selectedPlaylist, setSelectedPlaylist] = useState(null);
-  const [selectedPlaylistTracks, setSelectedPlaylistTracks] = useState([]);
-  const [playlistLoading, setPlaylistLoading] = useState(false);
+
+  const [playlistModal, setPlaylistModal] = useState({
+    playlist: null,
+    tracks: [],
+    loading: false,
+  });
+  const [artistModal, setArtistModal] = useState({
+    artist: null,
+    tracks: [],
+  });
+  const [addToPlaylistTrack, setAddToPlaylistTrack] = useState(null);
 
   const {
     currentUser,
@@ -45,6 +49,11 @@ function App() {
     setError,
     addPlaylist,
   } = useDashboardData(API_BASE_URL, currentUser);
+
+  const recommendedPlaylists = useMemo(
+    () => [...myPlaylists].sort((a, b) => (b.tracks_count || 0) - (a.tracks_count || 0)).slice(0, 6),
+    [myPlaylists]
+  );
 
   const allTracks = useMemo(() => {
     const result = [];
@@ -104,24 +113,31 @@ function App() {
     return `${API_BASE_URL}/image/${encodeURIComponent(fileName)}`;
   };
 
-  const openPlaylist = async (playlistId) => {
-    setActiveView('library');
-    setPlaylistLoading(true);
+  const openPlaylistModal = async (playlist) => {
+    if (!playlist?.id) {
+      return;
+    }
+
+    setPlaylistModal({ playlist, tracks: [], loading: true });
+
     try {
-      const payload = await fetchPlaylistDetails(API_BASE_URL, playlistId);
-      setSelectedPlaylist(payload);
-      setSelectedPlaylistTracks(
-        (payload.tracks || []).map((track) => ({
-          ...track,
-          artistName: track.artist_name,
-        }))
-      );
+      const payload = await fetchPlaylistDetails(API_BASE_URL, playlist.id);
+      const modalTracks = (payload.tracks || []).map((track) => ({
+        ...track,
+        artistName: track.artist_name,
+      }));
+
+      setPlaylistModal({ playlist: payload, tracks: modalTracks, loading: false });
       setError('');
     } catch (err) {
+      setPlaylistModal({ playlist, tracks: [], loading: false });
       setError(err.message);
-    } finally {
-      setPlaylistLoading(false);
     }
+  };
+
+  const openArtistModal = (artist) => {
+    const artistTracks = tracksByArtist[artist.id] || tracksByArtist[String(artist.id)] || [];
+    setArtistModal({ artist, tracks: artistTracks });
   };
 
   const onCreatePlaylist = async () => {
@@ -132,55 +148,62 @@ function App() {
 
     try {
       const created = await addPlaylist(title.trim());
-      await openPlaylist(created.id);
+      await openPlaylistModal(created);
     } catch (err) {
       setError(err.message);
     }
   };
 
-  const onAddTrackToPlaylist = async (track) => {
+  const onAddTrackToPlaylist = (track) => {
     if (!currentUser) {
       setError('Login first to add tracks into playlists');
       setActiveView('library');
       return;
     }
 
-    if (myPlaylists.length === 0) {
-      setError('Create a playlist first in Library');
-      setActiveView('library');
-      return;
-    }
+    setAddToPlaylistTrack(track);
+  };
 
-    const playlistHint = myPlaylists.map((p) => `${p.id}: ${p.title}`).join('\n');
-    const selectedRaw = window.prompt(`Select playlist id:\n${playlistHint}`);
-    if (!selectedRaw) {
-      return;
-    }
-
-    const playlistId = Number(selectedRaw);
-    if (!Number.isFinite(playlistId)) {
-      setError('Invalid playlist id');
+  const onConfirmAddToPlaylist = async (playlist) => {
+    if (!addToPlaylistTrack) {
       return;
     }
 
     try {
-      const response = await addTrackToPlaylist(API_BASE_URL, playlistId, track.id);
+      const response = await addTrackToPlaylist(API_BASE_URL, playlist.id, addToPlaylistTrack.id);
       if (response?.message?.includes('already')) {
         setError('Track is already in this playlist');
+        setAddToPlaylistTrack(null);
         return;
       }
 
       setMyPlaylists((prev) =>
-        prev.map((item) =>
-          item.id === playlistId ? { ...item, tracks_count: (item.tracks_count || 0) + 1 } : item
-        )
+        prev.map((item) => {
+          if (item.id !== playlist.id) {
+            return item;
+          }
+
+          return {
+            ...item,
+            tracks_count: (item.tracks_count || 0) + 1,
+            cover_image_path: item.cover_image_path || addToPlaylistTrack.artistImagePath || null,
+          };
+        })
       );
 
-      if (selectedPlaylist?.id === playlistId) {
-        setSelectedPlaylistTracks((prev) => [track, ...prev]);
-        setSelectedPlaylist((prev) => (prev ? { ...prev, tracks_count: (prev.tracks_count || 0) + 1 } : prev));
+      if (playlistModal.playlist?.id === playlist.id) {
+        setPlaylistModal((prev) => ({
+          ...prev,
+          tracks: [addToPlaylistTrack, ...prev.tracks],
+          playlist: {
+            ...prev.playlist,
+            tracks_count: (prev.playlist?.tracks_count || 0) + 1,
+            cover_image_path: prev.playlist?.cover_image_path || addToPlaylistTrack.artistImagePath || null,
+          },
+        }));
       }
 
+      setAddToPlaylistTrack(null);
       setError('');
     } catch (err) {
       setError(err.message);
@@ -190,8 +213,9 @@ function App() {
   const onLogout = () => {
     logout();
     setMyPlaylists([]);
-    setSelectedPlaylist(null);
-    setSelectedPlaylistTracks([]);
+    setPlaylistModal({ playlist: null, tracks: [], loading: false });
+    setArtistModal({ artist: null, tracks: [] });
+    setAddToPlaylistTrack(null);
   };
 
   return (
@@ -206,9 +230,8 @@ function App() {
           onNavigate={setActiveView}
           onLogout={onLogout}
           myPlaylists={myPlaylists}
-          recommendedPlaylists={fallbackRecommended}
-          onOpenPlaylist={openPlaylist}
-          selectedPlaylistId={selectedPlaylist?.id}
+          recommendedPlaylists={recommendedPlaylists}
+          onOpenPlaylist={openPlaylistModal}
         />
 
         <MainContent
@@ -220,10 +243,12 @@ function App() {
           totalTracks={allTracks.length}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
-          recommendedPlaylists={fallbackRecommended}
+          recommendedPlaylists={recommendedPlaylists}
           getImageUrl={getImageUrl}
           onTrackSelect={(track) => setCurrentTrackId(track.id)}
           onAddTrackToPlaylist={onAddTrackToPlaylist}
+          onOpenPlaylist={openPlaylistModal}
+          onOpenArtist={openArtistModal}
           currentUser={currentUser}
           activeView={activeView}
           authMode={authMode}
@@ -234,10 +259,6 @@ function App() {
           onAuthSubmit={submitAuth}
           myPlaylists={myPlaylists}
           onCreatePlaylist={onCreatePlaylist}
-          onOpenPlaylist={openPlaylist}
-          selectedPlaylist={selectedPlaylist}
-          selectedPlaylistTracks={selectedPlaylistTracks}
-          playlistLoading={playlistLoading}
         />
       </div>
 
@@ -252,6 +273,31 @@ function App() {
           hasPrevious={hasPrevious}
         />
       ) : null}
+
+      <PlaylistModal
+        playlist={playlistModal.playlist}
+        tracks={playlistModal.tracks}
+        loading={playlistModal.loading}
+        onTrackSelect={(track) => setCurrentTrackId(track.id)}
+        onClose={() => setPlaylistModal({ playlist: null, tracks: [], loading: false })}
+        getImageUrl={getImageUrl}
+      />
+
+      <ArtistModal
+        artist={artistModal.artist}
+        tracks={artistModal.tracks}
+        getImageUrl={getImageUrl}
+        onTrackSelect={(track) => setCurrentTrackId(track.id)}
+        onAddTrackToPlaylist={onAddTrackToPlaylist}
+        onClose={() => setArtistModal({ artist: null, tracks: [] })}
+      />
+
+      <AddToPlaylistModal
+        track={addToPlaylistTrack}
+        playlists={myPlaylists}
+        onSelect={onConfirmAddToPlaylist}
+        onClose={() => setAddToPlaylistTrack(null)}
+      />
     </div>
   );
 }

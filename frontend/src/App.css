@@ -320,11 +320,29 @@ body {
   border-color: var(--accent);
 }
 
+.artist-open-btn {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
 .playlist-cover {
   width: 100%;
   aspect-ratio: 1;
   border-radius: 12px;
   background: linear-gradient(135deg, #ff7a00, #ffb347);
+  margin-bottom: 10px;
+}
+
+.playlist-cover-image {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 12px;
   margin-bottom: 10px;
 }
 
@@ -348,6 +366,7 @@ body {
 .playlist-name {
   margin: 0;
   font-size: 16px;
+  color: var(--text);
 }
 
 .muted {
@@ -535,6 +554,78 @@ body {
   gap: 10px;
 }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-window {
+  width: min(900px, 100%);
+  max-height: 80vh;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(19, 14, 10, 0.98);
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+
+.modal-small {
+  width: min(520px, 100%);
+}
+
+.modal-cover {
+  max-width: 190px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.artist-modal-top {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.artist-modal-image {
+  width: 100%;
+  border-radius: 12px;
+  object-fit: cover;
+  aspect-ratio: 1;
+}
+
+.playlist-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.playlist-picker-item {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: rgba(27, 20, 14, 0.88);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 @media (max-width: 1024px) {
   .app-layout {
     grid-template-columns: 1fr;
@@ -554,5 +645,9 @@ body {
     transform: translateX(-50%);
     grid-template-columns: 1fr;
     gap: 10px;
+  }
+
+  .artist-modal-top {
+    grid-template-columns: 1fr;
   }
 }

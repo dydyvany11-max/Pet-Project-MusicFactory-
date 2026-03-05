@@ -17,6 +17,8 @@ function MainContent({
   getImageUrl,
   onTrackSelect,
   onAddTrackToPlaylist,
+  onOpenPlaylist,
+  onOpenArtist,
   currentUser,
   activeView,
   authMode,
@@ -27,10 +29,6 @@ function MainContent({
   onAuthSubmit,
   myPlaylists,
   onCreatePlaylist,
-  onOpenPlaylist,
-  selectedPlaylist,
-  selectedPlaylistTracks,
-  playlistLoading,
 }) {
   const showSearch = activeView === 'search';
   const showLibrary = activeView === 'library';
@@ -53,7 +51,7 @@ function MainContent({
         {showSearch ? <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} /> : null}
 
         {loading && <div className="loading-box">Loading catalog...</div>}
-        {!loading && !playlistLoading && error && <div className="error-box">{error}</div>}
+        {!loading && error && <div className="error-box">{error}</div>}
 
         {!loading && !error && !currentUser ? (
           <section className="section auth-panel">
@@ -107,13 +105,14 @@ function MainContent({
 
         {!loading && !error && showHome ? (
           <>
-            <RecommendedPlaylists playlists={recommendedPlaylists} />
+            <RecommendedPlaylists playlists={recommendedPlaylists} onOpenPlaylist={onOpenPlaylist} getImageUrl={getImageUrl} />
             <ArtistsGrid
               artists={artists}
               tracks={tracks}
               getImageUrl={getImageUrl}
               onTrackSelect={onTrackSelect}
               onAddTrackToPlaylist={onAddTrackToPlaylist}
+              onOpenArtist={onOpenArtist}
             />
           </>
         ) : null}
@@ -144,12 +143,16 @@ function MainContent({
                   <div className="card-grid">
                     {myPlaylists.map((playlist) => (
                       <button
-                        className={`playlist-card playlist-card-button ${selectedPlaylist?.id === playlist.id ? 'active' : ''}`}
+                        className="playlist-card playlist-card-button"
                         key={playlist.id}
                         type="button"
-                        onClick={() => onOpenPlaylist(playlist.id)}
+                        onClick={() => onOpenPlaylist(playlist)}
                       >
-                        <div className="playlist-cover" />
+                        {playlist.cover_image_path ? (
+                          <img className="playlist-cover-image" src={getImageUrl(playlist.cover_image_path)} alt={playlist.title} />
+                        ) : (
+                          <div className="playlist-cover" />
+                        )}
                         <div className="playlist-meta">
                           <h4 className="playlist-name">{playlist.title}</h4>
                           <span className="muted">{playlist.tracks_count} tracks</span>
@@ -158,35 +161,6 @@ function MainContent({
                     ))}
                   </div>
                 )}
-
-                {playlistLoading ? <div className="loading-box">Loading playlist...</div> : null}
-
-                {selectedPlaylist ? (
-                  <div className="section">
-                    <h3>{selectedPlaylist.title}</h3>
-                    {selectedPlaylistTracks.length === 0 ? (
-                      <div className="empty-box">This playlist is empty.</div>
-                    ) : (
-                      <div className="search-list">
-                        {selectedPlaylistTracks.map((track) => (
-                          <button
-                            key={`${selectedPlaylist.id}-${track.id}`}
-                            type="button"
-                            className="search-track"
-                            onClick={() => onTrackSelect(track)}
-                          >
-                            <span>
-                              <strong>{track.title}</strong>
-                              <span className="muted"> by {track.artist_name || track.artistName}</span>
-                            </span>
-                            {track.genre ? <span className="pill">{track.genre}</span> : <span className="muted">-</span>}
-                            <span className="muted">{track.duration_seconds ? `${track.duration_seconds}s` : '--'}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : null}
               </>
             )}
           </section>

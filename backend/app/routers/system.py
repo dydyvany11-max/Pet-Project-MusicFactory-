@@ -9,6 +9,7 @@ import database
 from app.config import IMAGES_DIR
 from app.deps import get_db
 from app.schemas import ArtistOut
+from app.services import get_playlist_cover_image
 
 router = APIRouter()
 
@@ -67,6 +68,7 @@ def dashboard(user_id: int | None = Query(None), db: Session = Depends(get_db)):
             'user_id': row.user_id,
             'is_public': row.is_public,
             'tracks_count': int(row.tracks_count or 0),
+            'cover_image_path': get_playlist_cover_image(db, row.id),
         }
         for row in playlist_rows
     ]

@@ -1,7 +1,7 @@
 ﻿import React from 'react';
 import ArtistCard from './ArtistCard';
 
-function ArtistsGrid({ artists, tracks, getImageUrl, onTrackSelect, onAddTrackToPlaylist }) {
+function ArtistsGrid({ artists, tracks, getImageUrl, onTrackSelect, onAddTrackToPlaylist, onOpenArtist }) {
   return (
     <section className="section">
       <h3>Artists</h3>
@@ -17,6 +17,7 @@ function ArtistsGrid({ artists, tracks, getImageUrl, onTrackSelect, onAddTrackTo
               getImageUrl={getImageUrl}
               onTrackSelect={onTrackSelect}
               onAddTrackToPlaylist={onAddTrackToPlaylist}
+              onOpenArtist={onOpenArtist}
             />
           ))}
         </div>

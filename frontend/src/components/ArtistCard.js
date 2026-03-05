@@ -1,13 +1,15 @@
 ﻿import React from 'react';
 
-function ArtistCard({ artist, tracks, getImageUrl, onTrackSelect, onAddTrackToPlaylist }) {
+function ArtistCard({ artist, tracks, getImageUrl, onTrackSelect, onAddTrackToPlaylist, onOpenArtist }) {
   return (
     <article className="artist-card">
-      <img className="artist-cover" src={getImageUrl(artist.image_path)} alt={artist.name} loading="lazy" />
-      <div className="artist-meta">
-        <h4 className="artist-name">{artist.name}</h4>
-        <span className="muted">{tracks.length} tracks</span>
-      </div>
+      <button className="artist-open-btn" type="button" onClick={() => onOpenArtist(artist)}>
+        <img className="artist-cover" src={getImageUrl(artist.image_path)} alt={artist.name} loading="lazy" />
+        <div className="artist-meta">
+          <h4 className="artist-name">{artist.name}</h4>
+          <span className="muted">{tracks.length} tracks</span>
+        </div>
+      </button>
 
       <div className="track-stack">
         {tracks.slice(0, 4).map((track) => {

@@ -8,7 +8,6 @@ function Sidebar({
   myPlaylists,
   recommendedPlaylists,
   onOpenPlaylist,
-  selectedPlaylistId,
 }) {
   return (
     <aside className="sidebar">
@@ -33,25 +32,13 @@ function Sidebar({
 
       <div className="side-group">
         <h4 className="side-title">Navigation</h4>
-        <button
-          className={`nav-item ${activeView === 'home' ? 'active' : ''}`}
-          type="button"
-          onClick={() => onNavigate('home')}
-        >
+        <button className={`nav-item ${activeView === 'home' ? 'active' : ''}`} type="button" onClick={() => onNavigate('home')}>
           Home
         </button>
-        <button
-          className={`nav-item ${activeView === 'search' ? 'active' : ''}`}
-          type="button"
-          onClick={() => onNavigate('search')}
-        >
+        <button className={`nav-item ${activeView === 'search' ? 'active' : ''}`} type="button" onClick={() => onNavigate('search')}>
           Search
         </button>
-        <button
-          className={`nav-item ${activeView === 'library' ? 'active' : ''}`}
-          type="button"
-          onClick={() => onNavigate('library')}
-        >
+        <button className={`nav-item ${activeView === 'library' ? 'active' : ''}`} type="button" onClick={() => onNavigate('library')}>
           Library
         </button>
       </div>
@@ -60,12 +47,7 @@ function Sidebar({
         <h4 className="side-title">My Playlists</h4>
         {myPlaylists.length === 0 ? <div className="muted">No playlists yet</div> : null}
         {myPlaylists.map((playlist) => (
-          <button
-            key={playlist.id}
-            className={`playlist-item ${selectedPlaylistId === playlist.id ? 'active' : ''}`}
-            type="button"
-            onClick={() => onOpenPlaylist(playlist.id)}
-          >
+          <button key={playlist.id} className="playlist-item" type="button" onClick={() => onOpenPlaylist(playlist)}>
             <span>{playlist.title}</span>
             <span className="playlist-count">{playlist.tracks_count}</span>
           </button>
@@ -75,7 +57,7 @@ function Sidebar({
       <div className="side-group">
         <h4 className="side-title">Recommended</h4>
         {recommendedPlaylists.map((playlist) => (
-          <button key={playlist.id} className="playlist-item" type="button" onClick={() => onNavigate('home')}>
+          <button key={playlist.id} className="playlist-item" type="button" onClick={() => onOpenPlaylist(playlist)}>
             <span>{playlist.title}</span>
             <span className="playlist-count">{playlist.tracks_count}</span>
           </button>

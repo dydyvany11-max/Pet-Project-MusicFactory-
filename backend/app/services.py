@@ -5,6 +5,7 @@ import shutil
 import time
 
 from fastapi import HTTPException, UploadFile
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 import database
@@ -43,3 +44,20 @@ def ensure_artist_exists(db: Session, artist_id: int) -> database.Artist:
     if not artist:
         raise HTTPException(status_code=404, detail='Artist not found')
     return artist
+
+
+def get_playlist_cover_image(db: Session, playlist_id: int) -> str | None:
+    # Cover is the image of the artist with the most tracks in this playlist.
+    row = (
+        db.query(
+            database.Artist.image_path.label('image_path'),
+            func.count(database.Track.id).label('tracks_count'),
+        )
+        .join(database.Track, database.Track.artist_id == database.Artist.id)
+        .join(database.PlaylistTrack, database.PlaylistTrack.track_id == database.Track.id)
+        .filter(database.PlaylistTrack.playlist_id == playlist_id)
+        .group_by(database.Artist.id, database.Artist.image_path)
+        .order_by(func.count(database.Track.id).desc(), database.Artist.id.asc())
+        .first()
+    )
+    return row.image_path if row and row.image_path else None

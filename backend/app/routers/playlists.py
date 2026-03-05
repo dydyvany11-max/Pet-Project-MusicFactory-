@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 import database
 from app.deps import get_db
 from app.schemas import CreatePlaylistIn, PlaylistOut
+from app.services import get_playlist_cover_image
 
 router = APIRouter(prefix='/playlists', tags=['playlists'])
 
@@ -34,6 +35,7 @@ def get_playlists(user_id: int | None = Query(None), db: Session = Depends(get_d
             user_id=row.user_id,
             is_public=row.is_public,
             tracks_count=int(row.tracks_count or 0),
+            cover_image_path=get_playlist_cover_image(db, row.id),
         )
         for row in rows
     ]
@@ -55,6 +57,7 @@ def create_playlist(payload: CreatePlaylistIn, db: Session = Depends(get_db)):
         user_id=playlist.user_id,
         is_public=playlist.is_public,
         tracks_count=0,
+        cover_image_path=None,
     )
 
 
@@ -92,6 +95,7 @@ def get_playlist_details(playlist_id: int, db: Session = Depends(get_db)):
         'user_id': playlist.user_id,
         'is_public': playlist.is_public,
         'tracks_count': len(tracks),
+        'cover_image_path': get_playlist_cover_image(db, playlist.id),
         'tracks': tracks,
     }
 

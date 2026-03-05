@@ -32,6 +32,7 @@ class PlaylistOut(BaseModel):
     user_id: Optional[int] = None
     is_public: bool
     tracks_count: int
+    cover_image_path: Optional[str] = None
 
 
 class CreatePlaylistIn(BaseModel):
