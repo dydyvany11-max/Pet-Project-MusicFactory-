@@ -166,6 +166,10 @@ body {
   margin-bottom: 4px;
 }
 
+.user-box .tiny-btn {
+  margin-top: 8px;
+}
+
 .main-content {
   background: var(--panel);
   border: 1px solid var(--line);
@@ -255,6 +259,11 @@ body {
   gap: 10px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.library-actions {
+  margin-top: -4px;
+  margin-bottom: 14px;
 }
 
 .action-btn {

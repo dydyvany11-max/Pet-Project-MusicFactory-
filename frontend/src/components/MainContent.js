@@ -132,7 +132,7 @@ function MainContent({
               <div className="empty-box">Log in to see personal playlists.</div>
             ) : (
               <>
-                <div className="auth-actions">
+                <div className="auth-actions library-actions">
                   <button className="action-btn" type="button" onClick={onCreatePlaylist}>
                     Create playlist
                   </button>
