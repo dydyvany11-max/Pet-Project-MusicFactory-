@@ -37,8 +37,8 @@ body {
 .app-shell {
   position: relative;
   min-height: 100vh;
-  overflow: hidden;
-  padding: 20px 20px 110px;
+  overflow-x: hidden;
+  padding: 12px 20px 6px;
 }
 
 .app-bg-orb {
@@ -73,6 +73,8 @@ body {
   gap: 20px;
   max-width: 1440px;
   margin: 0 auto;
+  height: calc(100vh + 8px);
+  padding-bottom: 82px;
 }
 
 .sidebar {
@@ -85,6 +87,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 26px;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .brand {
@@ -177,12 +181,29 @@ body {
   box-shadow: var(--shadow);
   backdrop-filter: blur(12px);
   overflow: hidden;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .main-scroll {
+  flex: 1;
+  min-height: 0;
   padding: 24px;
-  max-height: calc(100vh - 150px);
   overflow-y: auto;
+  padding-bottom: 26px;
+}
+
+.sidebar,
+.main-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.sidebar::-webkit-scrollbar,
+.main-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .hero {
@@ -635,9 +656,27 @@ body {
   gap: 8px;
 }
 
+.create-playlist-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.create-playlist-input {
+  padding-right: 14px;
+}
+
+.create-playlist-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 @media (max-width: 1024px) {
   .app-layout {
     grid-template-columns: 1fr;
+    height: auto;
+    padding-bottom: 0;
   }
 
   .sidebar {
@@ -658,5 +697,10 @@ body {
 
   .artist-modal-top {
     grid-template-columns: 1fr;
+  }
+
+  .main-scroll {
+    overflow-y: visible;
+    padding-bottom: 130px;
   }
 }

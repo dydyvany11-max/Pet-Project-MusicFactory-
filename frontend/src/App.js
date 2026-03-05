@@ -5,6 +5,7 @@ import NowPlaying from './components/NowPlaying';
 import PlaylistModal from './components/PlaylistModal';
 import ArtistModal from './components/ArtistModal';
 import AddToPlaylistModal from './components/AddToPlaylistModal';
+import CreatePlaylistModal from './components/CreatePlaylistModal';
 import { addTrackToPlaylist, fetchPlaylistDetails } from './api/client';
 import { useAuth } from './hooks/useAuth';
 import { useDashboardData } from './hooks/useDashboardData';
@@ -27,6 +28,7 @@ function App() {
     tracks: [],
   });
   const [addToPlaylistTrack, setAddToPlaylistTrack] = useState(null);
+  const [createPlaylistOpen, setCreatePlaylistOpen] = useState(false);
 
   const {
     currentUser,
@@ -140,18 +142,20 @@ function App() {
     setArtistModal({ artist, tracks: artistTracks });
   };
 
-  const onCreatePlaylist = async () => {
-    const title = window.prompt('Playlist name:');
-    if (!title || !title.trim()) {
+  const onCreatePlaylist = () => {
+    if (!currentUser) {
+      setError('Login first to create playlists');
+      setActiveView('library');
       return;
     }
 
-    try {
-      const created = await addPlaylist(title.trim());
-      await openPlaylistModal(created);
-    } catch (err) {
-      setError(err.message);
-    }
+    setCreatePlaylistOpen(true);
+  };
+
+  const onConfirmCreatePlaylist = async (title) => {
+    const created = await addPlaylist(title);
+    await openPlaylistModal(created);
+    setError('');
   };
 
   const onAddTrackToPlaylist = (track) => {
@@ -216,6 +220,7 @@ function App() {
     setPlaylistModal({ playlist: null, tracks: [], loading: false });
     setArtistModal({ artist: null, tracks: [] });
     setAddToPlaylistTrack(null);
+    setCreatePlaylistOpen(false);
   };
 
   return (
@@ -297,6 +302,12 @@ function App() {
         playlists={myPlaylists}
         onSelect={onConfirmAddToPlaylist}
         onClose={() => setAddToPlaylistTrack(null)}
+      />
+
+      <CreatePlaylistModal
+        open={createPlaylistOpen}
+        onClose={() => setCreatePlaylistOpen(false)}
+        onCreate={onConfirmCreatePlaylist}
       />
     </div>
   );
