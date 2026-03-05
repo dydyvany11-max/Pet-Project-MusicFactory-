@@ -4,10 +4,10 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile
 from sqlalchemy.orm import Session
 
 import database
-from app.config import ALLOWED_IMAGE_EXTENSIONS, IMAGES_DIR
+from app.config import ALLOWED_IMAGE_EXTENSIONS, IMAGES_DIR, TRACKS_DIR
 from app.deps import get_db
 from app.schemas import ArtistOut
-from app.services import ensure_artist_exists, save_upload
+from app.services import ensure_artist_exists, remove_stored_file, save_upload
 
 router = APIRouter(prefix='/artists', tags=['artists'])
 
@@ -60,3 +60,27 @@ def update_artist_image(
 
     return {'status': 'success', 'image_path': artist.image_path}
 
+
+@router.delete('/{artist_id}')
+def delete_artist(artist_id: int, db: Session = Depends(get_db)):
+    artist = ensure_artist_exists(db, artist_id)
+
+    tracks = db.query(database.Track).filter(database.Track.artist_id == artist_id).all()
+    track_ids = [track.id for track in tracks]
+
+    if track_ids:
+        (
+            db.query(database.PlaylistTrack)
+            .filter(database.PlaylistTrack.track_id.in_(track_ids))
+            .delete(synchronize_session=False)
+        )
+
+    for track in tracks:
+        db.delete(track)
+        remove_stored_file(TRACKS_DIR, track.file_path)
+
+    remove_stored_file(IMAGES_DIR, artist.image_path)
+    db.delete(artist)
+    db.commit()
+
+    return {'status': 'ok', 'deleted_tracks': len(track_ids)}

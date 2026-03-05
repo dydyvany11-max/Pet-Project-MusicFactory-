@@ -61,3 +61,11 @@ def get_playlist_cover_image(db: Session, playlist_id: int) -> str | None:
         .first()
     )
     return row.image_path if row and row.image_path else None
+
+
+def remove_stored_file(base_dir: Path, stored_path: str | None) -> None:
+    if not stored_path:
+        return
+    target = base_dir / Path(stored_path).name
+    if target.exists():
+        target.unlink()

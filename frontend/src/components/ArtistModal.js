@@ -1,6 +1,13 @@
 ﻿import React from 'react';
 
-function ArtistModal({ artist, tracks, getImageUrl, onClose, onTrackSelect, onAddTrackToPlaylist }) {
+function ArtistModal({
+  artist,
+  tracks,
+  getImageUrl,
+  onClose,
+  onTrackSelect,
+  onAddTrackToPlaylist,
+}) {
   if (!artist) {
     return null;
   }

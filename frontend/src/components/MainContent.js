@@ -57,18 +57,6 @@ function MainContent({
           <section className="section auth-panel">
             <h3>{authMode === 'login' ? 'Login' : 'Register'}</h3>
             <div className="auth-grid">
-              <input
-                className="search-input"
-                placeholder="Username"
-                value={authForm.username}
-                onChange={(event) => setAuthForm((prev) => ({ ...prev, username: event.target.value }))}
-              />
-              <input
-                className="search-input"
-                placeholder="Email"
-                value={authForm.email}
-                onChange={(event) => setAuthForm((prev) => ({ ...prev, email: event.target.value }))}
-              />
               {authMode === 'login' ? (
                 <input
                   className="search-input"
@@ -76,7 +64,22 @@ function MainContent({
                   value={authForm.login}
                   onChange={(event) => setAuthForm((prev) => ({ ...prev, login: event.target.value }))}
                 />
-              ) : null}
+              ) : (
+                <>
+                  <input
+                    className="search-input"
+                    placeholder="Username"
+                    value={authForm.username}
+                    onChange={(event) => setAuthForm((prev) => ({ ...prev, username: event.target.value }))}
+                  />
+                  <input
+                    className="search-input"
+                    placeholder="Email"
+                    value={authForm.email}
+                    onChange={(event) => setAuthForm((prev) => ({ ...prev, email: event.target.value }))}
+                  />
+                </>
+              )}
               <input
                 className="search-input"
                 type="password"

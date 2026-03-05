@@ -8,7 +8,7 @@ import database
 from app.config import ALLOWED_AUDIO_EXTENSIONS, TRACKS_DIR
 from app.deps import get_db
 from app.schemas import TrackOut, TrackWithArtistOut
-from app.services import ensure_artist_exists, save_upload
+from app.services import ensure_artist_exists, remove_stored_file, save_upload
 
 router = APIRouter(tags=['tracks'])
 
@@ -101,3 +101,21 @@ def play_audio(filename: str):
     if not requested.exists():
         raise HTTPException(status_code=404, detail='Audio file not found')
     return FileResponse(requested, media_type='audio/mpeg')
+
+
+@router.delete('/tracks/{track_id}')
+def delete_track(track_id: int, db: Session = Depends(get_db)):
+    track = db.query(database.Track).filter(database.Track.id == track_id).first()
+    if not track:
+        raise HTTPException(status_code=404, detail='Track not found')
+
+    (
+        db.query(database.PlaylistTrack)
+        .filter(database.PlaylistTrack.track_id == track_id)
+        .delete(synchronize_session=False)
+    )
+    db.delete(track)
+    db.commit()
+    remove_stored_file(TRACKS_DIR, track.file_path)
+
+    return {'status': 'ok'}

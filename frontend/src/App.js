@@ -16,6 +16,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
 function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentTrackId, setCurrentTrackId] = useState(null);
+  const [playbackQueue, setPlaybackQueue] = useState([]);
   const [activeView, setActiveView] = useState('home');
 
   const [playlistModal, setPlaylistModal] = useState({
@@ -88,18 +89,61 @@ function App() {
     });
   }, [allTracks, searchQuery]);
 
+  const normalizeTrack = (track) => {
+    if (!track) {
+      return null;
+    }
+
+    const artist = track.artistName || track.artist_name || 'Unknown Artist';
+    const matchedArtist =
+      artists.find((item) => item.id === Number(track.artist_id)) ||
+      artists.find((item) => item.name === artist);
+    const catalogTrack = allTracks.find((item) => item.id === track.id);
+    const artistImagePath =
+      track.artistImagePath ||
+      track.artist_image_path ||
+      matchedArtist?.image_path ||
+      catalogTrack?.artistImagePath ||
+      null;
+    return { ...track, artistName: artist, artistImagePath };
+  };
+
+  const playTrack = (track, queue = null) => {
+    const normalizedTrack = normalizeTrack(track);
+    if (!normalizedTrack) {
+      return;
+    }
+
+    if (Array.isArray(queue) && queue.length > 0) {
+      setPlaybackQueue(queue.map((item) => normalizeTrack(item)).filter(Boolean));
+    } else {
+      setPlaybackQueue([]);
+    }
+
+    setCurrentTrackId(normalizedTrack.id);
+  };
+
+  const effectiveQueue = useMemo(() => {
+    if (playbackQueue.length === 0) {
+      return allTracks;
+    }
+
+    const containsCurrent = playbackQueue.some((track) => track.id === currentTrackId);
+    return containsCurrent ? playbackQueue : allTracks;
+  }, [playbackQueue, allTracks, currentTrackId]);
+
   const currentTrack = useMemo(
-    () => allTracks.find((track) => track.id === currentTrackId) || null,
-    [allTracks, currentTrackId]
+    () => effectiveQueue.find((track) => track.id === currentTrackId) || allTracks.find((track) => track.id === currentTrackId) || null,
+    [effectiveQueue, allTracks, currentTrackId]
   );
 
   const currentIndex = useMemo(
-    () => allTracks.findIndex((track) => track.id === currentTrackId),
-    [allTracks, currentTrackId]
+    () => effectiveQueue.findIndex((track) => track.id === currentTrackId),
+    [effectiveQueue, currentTrackId]
   );
 
   const hasPrevious = currentIndex > 0;
-  const hasNext = currentIndex >= 0 && currentIndex < allTracks.length - 1;
+  const hasNext = currentIndex >= 0 && currentIndex < effectiveQueue.length - 1;
 
   const getAudioUrl = (filePath) => {
     const fileName = filePath.split('/').pop();
@@ -126,7 +170,14 @@ function App() {
       const payload = await fetchPlaylistDetails(API_BASE_URL, playlist.id);
       const modalTracks = (payload.tracks || []).map((track) => ({
         ...track,
-        artistName: track.artist_name,
+        artistName:
+          track.artist_name ||
+          artists.find((item) => item.id === Number(track.artist_id))?.name ||
+          'Unknown Artist',
+        artistImagePath:
+          track.artist_image_path ||
+          artists.find((item) => item.id === Number(track.artist_id))?.image_path ||
+          null,
       }));
 
       setPlaylistModal({ playlist: payload, tracks: modalTracks, loading: false });
@@ -217,6 +268,7 @@ function App() {
   const onLogout = () => {
     logout();
     setMyPlaylists([]);
+    setPlaybackQueue([]);
     setPlaylistModal({ playlist: null, tracks: [], loading: false });
     setArtistModal({ artist: null, tracks: [] });
     setAddToPlaylistTrack(null);
@@ -250,7 +302,7 @@ function App() {
           setSearchQuery={setSearchQuery}
           recommendedPlaylists={recommendedPlaylists}
           getImageUrl={getImageUrl}
-          onTrackSelect={(track) => setCurrentTrackId(track.id)}
+          onTrackSelect={(track) => playTrack(track)}
           onAddTrackToPlaylist={onAddTrackToPlaylist}
           onOpenPlaylist={openPlaylistModal}
           onOpenArtist={openArtistModal}
@@ -272,8 +324,8 @@ function App() {
           track={currentTrack}
           getAudioUrl={getAudioUrl}
           getImageUrl={getImageUrl}
-          onNext={() => hasNext && setCurrentTrackId(allTracks[currentIndex + 1].id)}
-          onPrevious={() => hasPrevious && setCurrentTrackId(allTracks[currentIndex - 1].id)}
+          onNext={() => hasNext && setCurrentTrackId(effectiveQueue[currentIndex + 1].id)}
+          onPrevious={() => hasPrevious && setCurrentTrackId(effectiveQueue[currentIndex - 1].id)}
           hasNext={hasNext}
           hasPrevious={hasPrevious}
         />
@@ -283,7 +335,7 @@ function App() {
         playlist={playlistModal.playlist}
         tracks={playlistModal.tracks}
         loading={playlistModal.loading}
-        onTrackSelect={(track) => setCurrentTrackId(track.id)}
+        onTrackSelect={(track) => playTrack(track, playlistModal.tracks)}
         onClose={() => setPlaylistModal({ playlist: null, tracks: [], loading: false })}
         getImageUrl={getImageUrl}
       />
@@ -292,7 +344,7 @@ function App() {
         artist={artistModal.artist}
         tracks={artistModal.tracks}
         getImageUrl={getImageUrl}
-        onTrackSelect={(track) => setCurrentTrackId(track.id)}
+        onTrackSelect={(track) => playTrack(track, artistModal.tracks)}
         onAddTrackToPlaylist={onAddTrackToPlaylist}
         onClose={() => setArtistModal({ artist: null, tracks: [] })}
       />

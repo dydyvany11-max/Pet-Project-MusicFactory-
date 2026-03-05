@@ -1,6 +1,13 @@
 ﻿import React from 'react';
 
-function ArtistCard({ artist, tracks, getImageUrl, onTrackSelect, onAddTrackToPlaylist, onOpenArtist }) {
+function ArtistCard({
+  artist,
+  tracks,
+  getImageUrl,
+  onTrackSelect,
+  onAddTrackToPlaylist,
+  onOpenArtist,
+}) {
   return (
     <article className="artist-card">
       <button className="artist-open-btn" type="button" onClick={() => onOpenArtist(artist)}>
