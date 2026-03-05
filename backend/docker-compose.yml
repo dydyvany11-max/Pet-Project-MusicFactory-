@@ -1,0 +1,21 @@
+
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: fast_sound_db
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: spotify_db
+    ports:
+      - "5433:5432"
+    volumes:
+      # Данные будут лежать здесь
+      - postgres_data:/var/lib/postgresql/data
+      # Скрипт создаст таблицы АВТОМАТИЧЕСКИ при первом запуске
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  postgres_data:
