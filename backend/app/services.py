@@ -1,4 +1,5 @@
-﻿from pathlib import Path
+﻿# -*- coding: utf-8 -*-
+from pathlib import Path
 import hashlib
 import re
 import shutil
@@ -47,7 +48,7 @@ def ensure_artist_exists(db: Session, artist_id: int) -> database.Artist:
 
 
 def get_playlist_cover_image(db: Session, playlist_id: int) -> str | None:
-    # Cover is the image of the artist with the most tracks in this playlist.
+    # Обложка — это изображение артиста, у которого больше всего треков в плейлисте.
     row = (
         db.query(
             database.Artist.image_path.label('image_path'),

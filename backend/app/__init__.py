@@ -1,1 +1,2 @@
-﻿# Backend application package
+﻿# -*- coding: utf-8 -*-
+# Пакет backend-приложения
