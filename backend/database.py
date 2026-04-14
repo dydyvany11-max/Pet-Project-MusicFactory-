@@ -1,4 +1,5 @@
-from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, Boolean
+from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, Boolean, DateTime, inspect, text
+from sqlalchemy.sql import func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
@@ -16,6 +17,7 @@ class User(Base):
     username = Column(String(50), nullable=False, unique=True)
     email = Column(String(100), nullable=False, unique=True)
     hashed_password = Column(String(255), nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 class Artist(Base):
     __tablename__ = "artists"
@@ -34,6 +36,7 @@ class Track(Base):
     file_path = Column(String(255), nullable=False)
     duration_seconds = Column(Integer, nullable=True)
     genre = Column(String(50), nullable=True)
+    play_count = Column(Integer, nullable=False, default=0, server_default="0")
 
 class Playlist(Base):
     __tablename__ = "playlists"
@@ -49,6 +52,49 @@ class PlaylistTrack(Base):
     playlist_id = Column(Integer, ForeignKey("playlists.id", ondelete="CASCADE"), primary_key=True)
     track_id = Column(Integer, ForeignKey("tracks.id", ondelete="CASCADE"), primary_key=True)
 
+class TrackPlayEvent(Base):
+    __tablename__ = "track_play_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    track_id = Column(Integer, ForeignKey("tracks.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    listened_seconds = Column(Integer, nullable=False, default=0, server_default="0")
+    played_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    _ensure_runtime_columns()
+
+
+def _ensure_runtime_columns():
+    inspector = inspect(engine)
+    table_names = set(inspector.get_table_names())
+
+    if 'tracks' in table_names:
+        track_columns = {column['name'] for column in inspector.get_columns('tracks')}
+        if 'play_count' not in track_columns:
+            with engine.begin() as connection:
+                connection.execute(
+                    text('ALTER TABLE tracks ADD COLUMN play_count INTEGER NOT NULL DEFAULT 0')
+                )
+
+    if 'users' in table_names:
+        user_columns = {column['name'] for column in inspector.get_columns('users')}
+        if 'created_at' not in user_columns:
+            with engine.begin() as connection:
+                connection.execute(
+                    text('ALTER TABLE users ADD COLUMN created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()')
+                )
+
+    if 'track_play_events' in table_names:
+        event_columns = {column['name'] for column in inspector.get_columns('track_play_events')}
+        with engine.begin() as connection:
+            if 'user_id' not in event_columns:
+                connection.execute(
+                    text('ALTER TABLE track_play_events ADD COLUMN user_id INTEGER NULL REFERENCES users(id) ON DELETE SET NULL')
+                )
+            if 'listened_seconds' not in event_columns:
+                connection.execute(
+                    text('ALTER TABLE track_play_events ADD COLUMN listened_seconds INTEGER NOT NULL DEFAULT 0')
+                )

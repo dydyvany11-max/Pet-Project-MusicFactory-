@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 import database
 from app.config import ALLOWED_AUDIO_EXTENSIONS, TRACKS_DIR
 from app.deps import get_db
-from app.schemas import TrackOut, TrackWithArtistOut
+from app.schemas import TrackListenIn, TrackOut, TrackPlayIn, TrackWithArtistOut
 from app.services import ensure_artist_exists, remove_stored_file, save_upload
 
 router = APIRouter(tags=['tracks'])
@@ -41,6 +41,7 @@ def get_tracks(
             file_path=track.file_path,
             duration_seconds=track.duration_seconds,
             genre=track.genre,
+            play_count=track.play_count or 0,
             artist_name=artist_name,
         )
         for track, artist_name in rows
@@ -76,6 +77,7 @@ def upload_track(
         genre=genre,
         duration_seconds=duration,
         file_path=f'/tracks/{audio_name}',
+        play_count=0,
     )
     db.add(new_track)
     db.commit()
@@ -101,6 +103,82 @@ def play_audio(filename: str):
     if not requested.exists():
         raise HTTPException(status_code=404, detail='Audio file not found')
     return FileResponse(requested, media_type='audio/mpeg')
+
+
+@router.post('/tracks/{track_id}/play')
+def register_track_play(track_id: int, payload: TrackPlayIn | None = None, db: Session = Depends(get_db)):
+    track = db.query(database.Track).filter(database.Track.id == track_id).first()
+    if not track:
+        raise HTTPException(status_code=404, detail='Track not found')
+
+    user_id = payload.user_id if payload else None
+    if user_id is not None:
+        user_exists = db.query(database.User.id).filter(database.User.id == user_id).first()
+        if not user_exists:
+            raise HTTPException(status_code=404, detail='User not found')
+
+    track.play_count = (track.play_count or 0) + 1
+    db.add(database.TrackPlayEvent(track_id=track_id, user_id=user_id, listened_seconds=0))
+    db.commit()
+    return {'status': 'ok', 'track_id': track_id, 'play_count': track.play_count}
+
+
+@router.post('/tracks/{track_id}/listen')
+def register_track_listen(track_id: int, payload: TrackListenIn, db: Session = Depends(get_db)):
+    track = db.query(database.Track).filter(database.Track.id == track_id).first()
+    if not track:
+        raise HTTPException(status_code=404, detail='Track not found')
+
+    if payload.user_id is not None:
+        user_exists = db.query(database.User.id).filter(database.User.id == payload.user_id).first()
+        if not user_exists:
+            raise HTTPException(status_code=404, detail='User not found')
+
+    db.add(
+        database.TrackPlayEvent(
+            track_id=track_id,
+            user_id=payload.user_id,
+            listened_seconds=payload.listened_seconds,
+        )
+    )
+    db.commit()
+    return {'status': 'ok', 'track_id': track_id, 'listened_seconds': payload.listened_seconds}
+
+
+@router.put('/tracks/{track_id}', response_model=TrackOut)
+def update_track(
+    track_id: int,
+    title: str | None = Form(None),
+    artist_id: int | None = Form(None),
+    genre: str | None = Form(None),
+    duration: int | None = Form(None),
+    db: Session = Depends(get_db),
+):
+    track = db.query(database.Track).filter(database.Track.id == track_id).first()
+    if not track:
+        raise HTTPException(status_code=404, detail='Track not found')
+
+    if title is not None:
+        normalized_title = title.strip()
+        if not normalized_title:
+            raise HTTPException(status_code=400, detail='Track title must not be empty')
+        track.title = normalized_title
+
+    if artist_id is not None:
+        ensure_artist_exists(db, artist_id)
+        track.artist_id = artist_id
+
+    if genre is not None:
+        track.genre = genre.strip() or None
+
+    if duration is not None:
+        if duration < 0:
+            raise HTTPException(status_code=400, detail='Duration must be non-negative')
+        track.duration_seconds = duration
+
+    db.commit()
+    db.refresh(track)
+    return track
 
 
 @router.delete('/tracks/{track_id}')

@@ -41,6 +41,11 @@ function Sidebar({
         <button className={`nav-item ${activeView === 'library' ? 'active' : ''}`} type="button" onClick={() => onNavigate('library')}>
           Library
         </button>
+        {currentUser?.is_admin ? (
+          <button className={`nav-item ${activeView === 'admin' ? 'active' : ''}`} type="button" onClick={() => onNavigate('admin')}>
+            Admin
+          </button>
+        ) : null}
       </div>
 
       <div className="side-group">

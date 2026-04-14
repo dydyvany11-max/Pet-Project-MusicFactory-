@@ -4,7 +4,11 @@ import { loginUser, registerUser } from '../api/client';
 export function useAuth(apiBaseUrl) {
   const [currentUser, setCurrentUser] = useState(() => {
     const stored = localStorage.getItem('mf_user');
-    return stored ? JSON.parse(stored) : null;
+    if (!stored) {
+      return null;
+    }
+    const parsed = JSON.parse(stored);
+    return { ...parsed, is_admin: Boolean(parsed?.is_admin) };
   });
   const [authMode, setAuthMode] = useState('login');
   const [authError, setAuthError] = useState('');
@@ -33,8 +37,9 @@ export function useAuth(apiBaseUrl) {
         });
       }
 
-      setCurrentUser(user);
-      localStorage.setItem('mf_user', JSON.stringify(user));
+      const normalizedUser = { ...user, is_admin: Boolean(user?.is_admin) };
+      setCurrentUser(normalizedUser);
+      localStorage.setItem('mf_user', JSON.stringify(normalizedUser));
       setAuthForm({ username: '', email: '', login: '', password: '' });
     } catch (err) {
       setAuthError(err.message);

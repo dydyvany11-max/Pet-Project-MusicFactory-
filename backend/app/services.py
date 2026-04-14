@@ -1,4 +1,5 @@
 ﻿# -*- coding: utf-8 -*-
+import os
 from pathlib import Path
 import hashlib
 import re
@@ -20,6 +21,20 @@ def sanitize_filename(value: str) -> str:
 
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode('utf-8')).hexdigest()
+
+
+def is_admin_user(username: str, email: str) -> bool:
+    admin_usernames = {
+        item.strip().lower()
+        for item in os.getenv('ADMIN_USERNAMES', 'admin').split(',')
+        if item.strip()
+    }
+    admin_emails = {
+        item.strip().lower()
+        for item in os.getenv('ADMIN_EMAILS', '').split(',')
+        if item.strip()
+    }
+    return username.strip().lower() in admin_usernames or email.strip().lower() in admin_emails
 
 
 def save_upload(upload: UploadFile, target_dir: Path, allowed_extensions: set[str], stem_prefix: str) -> str:

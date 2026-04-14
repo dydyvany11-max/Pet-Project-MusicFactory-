@@ -7,30 +7,78 @@ function formatTime(rawSeconds) {
   return `${mins}:${rest.toString().padStart(2, '0')}`;
 }
 
-function NowPlaying({ track, getAudioUrl, getImageUrl, onNext, onPrevious, hasNext, hasPrevious }) {
+function NowPlaying({
+  track,
+  getAudioUrl,
+  getImageUrl,
+  onNext,
+  onPrevious,
+  hasNext,
+  hasPrevious,
+  onTrackPlay,
+  onTrackListen,
+}) {
   const audioRef = useRef(null);
+  const onTrackListenRef = useRef(onTrackListen);
+  const trackRef = useRef(null);
+  const reportedSecondsRef = useRef(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolume] = useState(0.35);
 
   useEffect(() => {
+    onTrackListenRef.current = onTrackListen;
+  }, [onTrackListen]);
+
+  const flushListenChunk = () => {
+    if (!onTrackListenRef.current || !trackRef.current?.id) {
+      return;
+    }
+
+    const audio = audioRef.current;
+    const current = Math.floor(audio?.currentTime || 0);
+    const delta = current - reportedSecondsRef.current;
+    if (delta > 0) {
+      onTrackListenRef.current(trackRef.current, delta);
+      reportedSecondsRef.current = current;
+    }
+  };
+
+  useEffect(() => {
+    flushListenChunk();
+
     const audio = audioRef.current;
     if (!audio) {
       return;
     }
 
+    trackRef.current = track;
+    reportedSecondsRef.current = 0;
     audio.currentTime = 0;
     audio.volume = volume;
     setCurrentTime(0);
+    setIsPlaying(true);
 
     const playPromise = audio.play();
     if (playPromise && typeof playPromise.catch === 'function') {
       playPromise.catch(() => setIsPlaying(false));
-    } else {
-      setIsPlaying(true);
     }
-  }, [track]);
+  }, [track?.id]);
+
+  useEffect(() => {
+    if (!track?.id || !onTrackPlay) {
+      return;
+    }
+    onTrackPlay(track);
+  }, [track?.id, onTrackPlay]);
+
+  useEffect(
+    () => () => {
+      flushListenChunk();
+    },
+    []
+  );
 
   const togglePlay = () => {
     const audio = audioRef.current;
@@ -40,6 +88,7 @@ function NowPlaying({ track, getAudioUrl, getImageUrl, onNext, onPrevious, hasNe
 
     if (isPlaying) {
       audio.pause();
+      flushListenChunk();
       setIsPlaying(false);
     } else {
       audio.play();
@@ -88,8 +137,8 @@ function NowPlaying({ track, getAudioUrl, getImageUrl, onNext, onPrevious, hasNe
           <button className="icon-btn" type="button" onClick={onPrevious} disabled={!hasPrevious}>
             {'<'}
           </button>
-          <button className="icon-btn play" type="button" onClick={togglePlay} title="Track">
-            {isPlaying ? '♪' : '♫'}
+          <button className="icon-btn play" type="button" onClick={togglePlay} title="Play / Stop">
+            {isPlaying ? '■' : '▶'}
           </button>
           <button className="icon-btn" type="button" onClick={onNext} disabled={!hasNext}>
             {'>'}
@@ -113,7 +162,13 @@ function NowPlaying({ track, getAudioUrl, getImageUrl, onNext, onPrevious, hasNe
       </div>
 
       <div className="player-volume">
-        <span className="muted">Volume</span>
+        <span className="volume-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path d="M3 9v6h4l5 4V5L7 9H3z" />
+            <path d="M14.5 8.5a1 1 0 0 1 1.4 0 5 5 0 0 1 0 7 1 1 0 1 1-1.4-1.4 3 3 0 0 0 0-4.2 1 1 0 0 1 0-1.4z" />
+            <path d="M17.8 5.2a1 1 0 0 1 1.4 0 9 9 0 0 1 0 12.8 1 1 0 1 1-1.4-1.4 7 7 0 0 0 0-10 1 1 0 0 1 0-1.4z" />
+          </svg>
+        </span>
         <input
           className="range-volume"
           type="range"
@@ -130,7 +185,10 @@ function NowPlaying({ track, getAudioUrl, getImageUrl, onNext, onPrevious, hasNe
         src={getAudioUrl(track.file_path)}
         onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || 0)}
         onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
-        onEnded={onNext}
+        onEnded={() => {
+          flushListenChunk();
+          onNext();
+        }}
       />
     </section>
   );

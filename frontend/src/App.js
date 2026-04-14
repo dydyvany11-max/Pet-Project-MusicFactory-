@@ -6,7 +6,19 @@ import PlaylistModal from './components/PlaylistModal';
 import ArtistModal from './components/ArtistModal';
 import AddToPlaylistModal from './components/AddToPlaylistModal';
 import CreatePlaylistModal from './components/CreatePlaylistModal';
-import { addTrackToPlaylist, fetchPlaylistDetails } from './api/client';
+import ConfirmModal from './components/ConfirmModal';
+import {
+  addTrackToPlaylist,
+  createArtist,
+  deleteArtist,
+  deleteTrack,
+  fetchPlaylistDetails,
+  registerTrackListen,
+  registerTrackPlay,
+  updateArtist,
+  updateTrack,
+  uploadTrack,
+} from './api/client';
 import { useAuth } from './hooks/useAuth';
 import { useDashboardData } from './hooks/useDashboardData';
 import './App.css';
@@ -30,6 +42,14 @@ function App() {
   });
   const [addToPlaylistTrack, setAddToPlaylistTrack] = useState(null);
   const [createPlaylistOpen, setCreatePlaylistOpen] = useState(false);
+  const [confirmModal, setConfirmModal] = useState({
+    open: false,
+    title: '',
+    message: '',
+    confirmLabel: 'Confirm',
+    busy: false,
+    action: null,
+  });
 
   const {
     currentUser,
@@ -47,10 +67,14 @@ function App() {
     tracksByArtist,
     myPlaylists,
     setMyPlaylists,
+    serviceMetrics,
+    artistMetrics,
+    artistDailyMetrics,
     loading,
     error,
     setError,
     addPlaylist,
+    reloadDashboard,
   } = useDashboardData(API_BASE_URL, currentUser);
 
   const recommendedPlaylists = useMemo(
@@ -267,12 +291,185 @@ function App() {
 
   const onLogout = () => {
     logout();
+    setActiveView('home');
     setMyPlaylists([]);
     setPlaybackQueue([]);
     setPlaylistModal({ playlist: null, tracks: [], loading: false });
     setArtistModal({ artist: null, tracks: [] });
     setAddToPlaylistTrack(null);
     setCreatePlaylistOpen(false);
+  };
+
+  const ensureAdminAccess = () => {
+    if (!currentUser?.is_admin) {
+      setError('Admin access only');
+      return false;
+    }
+    return true;
+  };
+
+  const onCreateArtist = async (payload) => {
+    if (!ensureAdminAccess()) {
+      return;
+    }
+
+    try {
+      await createArtist(API_BASE_URL, payload);
+      await reloadDashboard();
+      setError('');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const onUploadTrack = async (payload) => {
+    if (!ensureAdminAccess()) {
+      return;
+    }
+
+    try {
+      await uploadTrack(API_BASE_URL, payload);
+      await reloadDashboard();
+      setError('');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const onUpdateArtist = async (artistId, payload) => {
+    if (!ensureAdminAccess()) {
+      return;
+    }
+    if (!artistId) {
+      return;
+    }
+
+    try {
+      await updateArtist(API_BASE_URL, artistId, payload);
+      await reloadDashboard();
+      setError('');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const onUpdateTrack = async (trackId, payload) => {
+    if (!ensureAdminAccess()) {
+      return;
+    }
+    if (!trackId) {
+      return;
+    }
+
+    try {
+      await updateTrack(API_BASE_URL, trackId, payload);
+      await reloadDashboard();
+      setError('');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const onDeleteArtist = async (artist) => {
+    if (!ensureAdminAccess()) {
+      return;
+    }
+    if (!artist?.id) {
+      return;
+    }
+    setConfirmModal({
+      open: true,
+      title: 'Confirm Artist Deletion',
+      message: `Are you sure you want to delete "${artist.name}" and all related tracks from playlists?`,
+      confirmLabel: 'Delete',
+      busy: false,
+      action: async () => {
+        await deleteArtist(API_BASE_URL, artist.id);
+        if (currentTrack?.artist_id === artist.id) {
+          setCurrentTrackId(null);
+        }
+        setArtistModal({ artist: null, tracks: [] });
+        await reloadDashboard();
+      },
+    });
+  };
+
+  const onDeleteTrack = async (track) => {
+    if (!ensureAdminAccess()) {
+      return;
+    }
+    if (!track?.id) {
+      return;
+    }
+    setConfirmModal({
+      open: true,
+      title: 'Confirm Track Deletion',
+      message: `Are you sure you want to delete "${track.title}" from the catalog and playlists?`,
+      confirmLabel: 'Delete',
+      busy: false,
+      action: async () => {
+        await deleteTrack(API_BASE_URL, track.id);
+        if (currentTrackId === track.id) {
+          setCurrentTrackId(null);
+        }
+        await reloadDashboard();
+      },
+    });
+  };
+
+  const onTrackPlay = async (track) => {
+    if (!track?.id) {
+      return;
+    }
+
+    try {
+      await registerTrackPlay(API_BASE_URL, track.id, currentUser?.id || null);
+    } catch (_) {
+      // Метрики не должны ломать воспроизведение.
+    }
+  };
+
+  const onTrackListen = async (track, listenedSeconds) => {
+    if (!track?.id || !Number.isFinite(Number(listenedSeconds)) || Number(listenedSeconds) <= 0) {
+      return;
+    }
+
+    try {
+      await registerTrackListen(API_BASE_URL, track.id, listenedSeconds, currentUser?.id || null);
+    } catch (_) {
+      // Метрики не должны ломать воспроизведение.
+    }
+  };
+
+  const closeConfirmModal = () => {
+    if (confirmModal.busy) {
+      return;
+    }
+    setConfirmModal((prev) => ({ ...prev, open: false, action: null }));
+  };
+
+  const onConfirmModal = async () => {
+    if (!confirmModal.action) {
+      closeConfirmModal();
+      return;
+    }
+
+    setConfirmModal((prev) => ({ ...prev, busy: true }));
+    try {
+      await confirmModal.action();
+      setError('');
+      setConfirmModal({
+        open: false,
+        title: '',
+        message: '',
+        confirmLabel: 'Confirm',
+        busy: false,
+        action: null,
+      });
+    } catch (err) {
+      setError(err.message);
+      setConfirmModal((prev) => ({ ...prev, busy: false }));
+    }
   };
 
   return (
@@ -316,19 +513,32 @@ function App() {
           onAuthSubmit={submitAuth}
           myPlaylists={myPlaylists}
           onCreatePlaylist={onCreatePlaylist}
+          serviceMetrics={serviceMetrics}
+          artistMetrics={artistMetrics}
+          artistDailyMetrics={artistDailyMetrics}
+          onCreateArtist={onCreateArtist}
+          onUploadTrack={onUploadTrack}
+          onUpdateArtist={onUpdateArtist}
+          onUpdateTrack={onUpdateTrack}
+          onDeleteArtist={onDeleteArtist}
+          onDeleteTrack={onDeleteTrack}
         />
       </div>
 
       {currentTrack ? (
-        <NowPlaying
-          track={currentTrack}
-          getAudioUrl={getAudioUrl}
-          getImageUrl={getImageUrl}
-          onNext={() => hasNext && setCurrentTrackId(effectiveQueue[currentIndex + 1].id)}
-          onPrevious={() => hasPrevious && setCurrentTrackId(effectiveQueue[currentIndex - 1].id)}
-          hasNext={hasNext}
-          hasPrevious={hasPrevious}
-        />
+        <div className="player-wrap">
+          <NowPlaying
+            track={currentTrack}
+            getAudioUrl={getAudioUrl}
+            getImageUrl={getImageUrl}
+            onNext={() => hasNext && setCurrentTrackId(effectiveQueue[currentIndex + 1].id)}
+            onPrevious={() => hasPrevious && setCurrentTrackId(effectiveQueue[currentIndex - 1].id)}
+            hasNext={hasNext}
+            hasPrevious={hasPrevious}
+            onTrackPlay={onTrackPlay}
+            onTrackListen={onTrackListen}
+          />
+        </div>
       ) : null}
 
       <PlaylistModal
@@ -360,6 +570,16 @@ function App() {
         open={createPlaylistOpen}
         onClose={() => setCreatePlaylistOpen(false)}
         onCreate={onConfirmCreatePlaylist}
+      />
+
+      <ConfirmModal
+        open={confirmModal.open}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmLabel={confirmModal.confirmLabel}
+        onConfirm={onConfirmModal}
+        onCancel={closeConfirmModal}
+        busy={confirmModal.busy}
       />
     </div>
   );

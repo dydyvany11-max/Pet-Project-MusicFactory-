@@ -1,6 +1,6 @@
 ﻿from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 import database
@@ -59,6 +59,35 @@ def update_artist_image(
     db.commit()
 
     return {'status': 'success', 'image_path': artist.image_path}
+
+
+@router.put('/{artist_id}', response_model=ArtistOut)
+def update_artist(
+    artist_id: int,
+    name: str | None = Form(None),
+    bio: str | None = Form(None),
+    image: UploadFile | None = File(None),
+    db: Session = Depends(get_db),
+):
+    artist = ensure_artist_exists(db, artist_id)
+
+    if name is not None:
+        normalized_name = name.strip()
+        if not normalized_name:
+            raise HTTPException(status_code=400, detail='Artist name must not be empty')
+        artist.name = normalized_name
+
+    if bio is not None:
+        artist.bio = bio.strip() or None
+
+    if image and image.filename:
+        remove_stored_file(IMAGES_DIR, artist.image_path)
+        image_name = save_upload(image, IMAGES_DIR, ALLOWED_IMAGE_EXTENSIONS, artist.name)
+        artist.image_path = f'/images/{image_name}'
+
+    db.commit()
+    db.refresh(artist)
+    return artist
 
 
 @router.delete('/{artist_id}')

@@ -3,6 +3,7 @@ import SearchBar from './SearchBar';
 import RecommendedPlaylists from './RecommendedPlaylists';
 import ArtistsGrid from './ArtistsGrid';
 import SearchResults from './SearchResults';
+import AdminPanel from './AdminPanel';
 
 function MainContent({
   loading,
@@ -29,10 +30,20 @@ function MainContent({
   onAuthSubmit,
   myPlaylists,
   onCreatePlaylist,
+  serviceMetrics,
+  artistMetrics,
+  artistDailyMetrics,
+  onCreateArtist,
+  onUploadTrack,
+  onUpdateArtist,
+  onUpdateTrack,
+  onDeleteArtist,
+  onDeleteTrack,
 }) {
   const showSearch = activeView === 'search';
   const showLibrary = activeView === 'library';
   const showHome = activeView === 'home';
+  const showAdmin = activeView === 'admin';
 
   return (
     <main className="main-content">
@@ -167,6 +178,29 @@ function MainContent({
               </>
             )}
           </section>
+        ) : null}
+
+        {!loading && !error && showAdmin ? (
+          !currentUser?.is_admin ? (
+            <section className="section">
+              <div className="error-box">Admin access only.</div>
+            </section>
+          ) : (
+            <AdminPanel
+              artists={artists}
+              tracksByArtist={tracks}
+              serviceMetrics={serviceMetrics}
+              artistMetrics={artistMetrics}
+              artistDailyMetrics={artistDailyMetrics}
+              getImageUrl={getImageUrl}
+              onCreateArtist={onCreateArtist}
+              onUploadTrack={onUploadTrack}
+              onUpdateArtist={onUpdateArtist}
+              onUpdateTrack={onUpdateTrack}
+              onDeleteArtist={onDeleteArtist}
+              onDeleteTrack={onDeleteTrack}
+            />
+          )
         ) : null}
       </div>
     </main>
