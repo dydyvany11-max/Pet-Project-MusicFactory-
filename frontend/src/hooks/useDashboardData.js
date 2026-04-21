@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPlaylist, fetchArtistDailyMetrics, fetchDashboard } from '../api/client';
 
 export function useDashboardData(apiBaseUrl, currentUser) {

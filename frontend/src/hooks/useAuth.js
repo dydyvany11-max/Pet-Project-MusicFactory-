@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { loginUser, registerUser } from '../api/client';
 
 export function useAuth(apiBaseUrl) {
