@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 function formatTime(rawSeconds) {
   const seconds = Number.isFinite(rawSeconds) ? rawSeconds : 0;
@@ -20,7 +20,9 @@ function NowPlaying({
 }) {
   const audioRef = useRef(null);
   const onTrackListenRef = useRef(onTrackListen);
-  const trackRef = useRef(null);
+  const onTrackPlayRef = useRef(onTrackPlay);
+  const trackRef = useRef(track || null);
+  const volumeRef = useRef(0.35);
   const reportedSecondsRef = useRef(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [duration, setDuration] = useState(0);
@@ -31,7 +33,23 @@ function NowPlaying({
     onTrackListenRef.current = onTrackListen;
   }, [onTrackListen]);
 
-  const flushListenChunk = () => {
+  useEffect(() => {
+    onTrackPlayRef.current = onTrackPlay;
+  }, [onTrackPlay]);
+
+  useEffect(() => {
+    trackRef.current = track || null;
+  }, [track]);
+
+  useEffect(() => {
+    volumeRef.current = volume;
+    const audio = audioRef.current;
+    if (audio) {
+      audio.volume = volume;
+    }
+  }, [volume]);
+
+  const flushListenChunk = useCallback(() => {
     if (!onTrackListenRef.current || !trackRef.current?.id) {
       return;
     }
@@ -43,7 +61,7 @@ function NowPlaying({
       onTrackListenRef.current(trackRef.current, delta);
       reportedSecondsRef.current = current;
     }
-  };
+  }, []);
 
   useEffect(() => {
     flushListenChunk();
@@ -53,10 +71,9 @@ function NowPlaying({
       return;
     }
 
-    trackRef.current = track;
     reportedSecondsRef.current = 0;
     audio.currentTime = 0;
-    audio.volume = volume;
+    audio.volume = volumeRef.current;
     setCurrentTime(0);
     setIsPlaying(true);
 
@@ -64,20 +81,20 @@ function NowPlaying({
     if (playPromise && typeof playPromise.catch === 'function') {
       playPromise.catch(() => setIsPlaying(false));
     }
-  }, [track?.id]);
+  }, [track?.id, flushListenChunk]);
 
   useEffect(() => {
-    if (!track?.id || !onTrackPlay) {
+    if (!track?.id || !onTrackPlayRef.current || !trackRef.current) {
       return;
     }
-    onTrackPlay(track);
-  }, [track?.id, onTrackPlay]);
+    onTrackPlayRef.current(trackRef.current);
+  }, [track?.id]);
 
   useEffect(
     () => () => {
       flushListenChunk();
     },
-    []
+    [flushListenChunk]
   );
 
   const togglePlay = () => {
@@ -138,7 +155,7 @@ function NowPlaying({
             {'<'}
           </button>
           <button className="icon-btn play" type="button" onClick={togglePlay} title="Play / Stop">
-            {isPlaying ? 'в– ' : 'в–¶'}
+            {isPlaying ? '■' : '▶'}
           </button>
           <button className="icon-btn" type="button" onClick={onNext} disabled={!hasNext}>
             {'>'}
