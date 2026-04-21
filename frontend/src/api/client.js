@@ -1,4 +1,4 @@
-﻿export async function apiRequest(baseUrl, path, options = {}) {
+export async function apiRequest(baseUrl, path, options = {}) {
   const response = await fetch(`${baseUrl}${path}`, options);
   const contentType = response.headers.get('content-type') || '';
   const hasJson = contentType.includes('application/json');

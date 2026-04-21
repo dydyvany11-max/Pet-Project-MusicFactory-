@@ -1,5 +1,5 @@
-// jest-dom добавляет кастомные матчеры для проверок DOM-узлов.
-// позволяет писать такое:
+// jest-dom РґРѕР±Р°РІР»СЏРµС‚ РєР°СЃС‚РѕРјРЅС‹Рµ РјР°С‚С‡РµСЂС‹ РґР»СЏ РїСЂРѕРІРµСЂРѕРє DOM-СѓР·Р»РѕРІ.
+// РїРѕР·РІРѕР»СЏРµС‚ РїРёСЃР°С‚СЊ С‚Р°РєРѕРµ:
 // expect(element).toHaveTextContent(/react/i)
-// подробнее: https://github.com/testing-library/jest-dom
+// РїРѕРґСЂРѕР±РЅРµРµ: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';

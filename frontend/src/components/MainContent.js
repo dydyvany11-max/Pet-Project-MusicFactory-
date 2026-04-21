@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import SearchBar from './SearchBar';
 import RecommendedPlaylists from './RecommendedPlaylists';
 import ArtistsGrid from './ArtistsGrid';

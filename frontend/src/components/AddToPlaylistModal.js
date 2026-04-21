@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 
 function AddToPlaylistModal({ track, playlists, onSelect, onClose }) {
   if (!track) {

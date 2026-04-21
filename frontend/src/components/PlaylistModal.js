@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 
 function PlaylistModal({ playlist, tracks, loading, onClose, onTrackSelect, getImageUrl }) {
   if (!playlist) {

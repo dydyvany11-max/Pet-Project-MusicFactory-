@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 function formatTime(rawSeconds) {
   const seconds = Number.isFinite(rawSeconds) ? rawSeconds : 0;
@@ -138,7 +138,7 @@ function NowPlaying({
             {'<'}
           </button>
           <button className="icon-btn play" type="button" onClick={togglePlay} title="Play / Stop">
-            {isPlaying ? '■' : '▶'}
+            {isPlaying ? 'в– ' : 'в–¶'}
           </button>
           <button className="icon-btn" type="button" onClick={onNext} disabled={!hasNext}>
             {'>'}

@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 
 function ConfirmModal({ open, title, message, confirmLabel, onConfirm, onCancel, busy }) {
   if (!open) {

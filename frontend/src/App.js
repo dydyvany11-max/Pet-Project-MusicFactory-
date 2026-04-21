@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
 import NowPlaying from './components/NowPlaying';
@@ -425,7 +425,7 @@ function App() {
     try {
       await registerTrackPlay(API_BASE_URL, track.id, currentUser?.id || null);
     } catch (_) {
-      // Метрики не должны ломать воспроизведение.
+      // РњРµС‚СЂРёРєРё РЅРµ РґРѕР»Р¶РЅС‹ Р»РѕРјР°С‚СЊ РІРѕСЃРїСЂРѕРёР·РІРµРґРµРЅРёРµ.
     }
   };
 
@@ -437,7 +437,7 @@ function App() {
     try {
       await registerTrackListen(API_BASE_URL, track.id, listenedSeconds, currentUser?.id || null);
     } catch (_) {
-      // Метрики не должны ломать воспроизведение.
+      // РњРµС‚СЂРёРєРё РЅРµ РґРѕР»Р¶РЅС‹ Р»РѕРјР°С‚СЊ РІРѕСЃРїСЂРѕРёР·РІРµРґРµРЅРёРµ.
     }
   };
 
